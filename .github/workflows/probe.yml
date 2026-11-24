@@ -1,0 +1,25 @@
+name: probe
+on:
+  push:
+    branches: [probe]
+permissions:
+  contents: write
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - name: indir
+        run: |
+          mkdir -p out && cd out
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+          for m in "YILDIZ PAZAR" "ANA PAZAR" "ALT PAZAR" "YAKIN İZLEME PAZARI"; do
+            b=$(printf "%s" "$m" | base64 -w0); f=$(echo "$m" | tr ' İ' '_I')
+            curl -sL -A "$UA" "https://kap.org.tr/tr/Pazarlar?market=$b" -o "kap_$f.html"; ls -la "kap_$f.html"
+          done
+          curl -sL -A "$UA" "https://kap.org.tr/tr/Pazarlar" -o kap_tum.html
+          curl -s -A "$UA" -X POST https://scanner.tradingview.com/turkey/scan -H 'Content-Type: application/json' -d '{"columns":["name","type","subtype","market","exchange","average_volume_30d_calc","close"],"filter":[{"left":"type","operation":"equal","right":"stock"}],"range":[0,1000]}' -o tv_scan.json; ls -la
+          curl -s -A "$UA" "https://query1.finance.yahoo.com/v8/finance/chart/THYAO.IS?interval=1d&range=3mo" -o y_1d.json; ls -la y_1d.json
+      - name: yaz
+        run: |
+          cd out && git init -q -b probe-sonuc && git config user.name a && git config user.email a@a
+          git add -A && git commit -qm probe && git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" probe-sonuc
