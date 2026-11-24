@@ -21,7 +21,7 @@ for i in $(seq 1 60); do
 done
 echo "panel_hazir=$hazir (bekleme ~$((i*3)) sn)" | tee test_sonuc/ozet.txt
 if [ "$hazir" = "1" ]; then
-  curl -s -X POST -H 'Content-Type: application/json' -d '{"hisseler":"THYAO ASELS GARAN","simulasyon_gun":45}' http://127.0.0.1:8765/api/ayarlar > /dev/null
+  curl -s -X POST -H 'Content-Type: application/json' -d '{"evren":"tum","evren_max_hisse":40,"simulasyon_gun":45}' http://127.0.0.1:8765/api/ayarlar > /dev/null
   curl -s -X POST -H 'Content-Type: application/json' -d '{"gun":45}' http://127.0.0.1:8765/api/simulasyon
   echo
   for i in $(seq 1 72); do
@@ -34,6 +34,7 @@ if [ "$hazir" = "1" ]; then
 import json
 d = json.load(open("test_sonuc/durum.json"))
 print("sim_var=%s | mesaj=%s | kaynak=%s | basarisiz=%s" % (d.get("sim_var"), d.get("mesaj"), d.get("veri_kaynagi"), d.get("basarisiz")))
+print("evren=%s" % d.get("evren"))
 print("\n".join(d.get("loglar", [])[-20:]))
 PY
   curl -s --max-time 20 "http://127.0.0.1:8765/api/panel?mod=simulasyon" -o test_sonuc/panel_sim.json

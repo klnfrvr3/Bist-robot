@@ -36,18 +36,26 @@ Komisyon örneği: binde 1,5 + BSMV → 100.000 ₺'lik alışta 157,50 ₺, al-
 Komisyon hem alışta hem satışta, işlem tutarı üzerinden alınır. Kayma (varsayılan %0,05) emrin
 aleyhte bir fiyattan gerçekleşmesini taklit eder.
 
-## 3. Tablolar
+## 3. Panel
 
-* **Günlük** — seçilen günün başlangıç ve gün sonu varlığı, kâr/zarar, o günün işlemleri, son 30 günün grafiği
-* **Bu hafta** — haftanın her günü ayrı satır + hafta toplamı (hafta seçilebilir)
-* **Bu ay** — ayın her günü, hafta ara toplamları ve ay toplamı (ay seçilebilir)
-* **Yıllık** — 12 ay ayrı satır + yıl toplamı (yıl seçilebilir)
+* **Anlık durum** (en üstte) — açık pozisyonlar, anlık kâr/zararları ve stop seviyeleri, bekleyen emirler ve son işlemler.
+* **Kazançlar** — tek menüde Günlük / Haftalık / Aylık / Yıllık kâr tablosu. Bir satıra dokununca ayrıntısı açılır
+  (hafta ve ay → günler, yıl → aylar, gün → o günün işlemleri). En altta tüm dönemin toplamı.
 
 Her satırda: başlangıç varlık, bitiş varlık, kâr/zarar (₺ ve %), gerçekleşen kâr, ödenen komisyon,
 işlem sayısı, kazanan/kaybeden işlem. Kâr/zarar her zaman **komisyon düşülmüş net** rakamdır;
 gün sonu varlığı açık pozisyonları o günün kapanış fiyatıyla değerler.
 
-## 4. Veri nereden geliyor?
+## 4. Hangi hisseler?
+
+Varsayılan: **Borsa İstanbul'daki tüm paylar, Yakın İzleme Pazarı (YİP) hariç.** Program her gün KAP'tan
+Yıldız, Ana ve Alt Pazar listelerini alır, YİP'teki payları çıkarır, TradingView taramasından son 30 günlük
+ortalama işlem hacmini okur ve günlük hacmi 10 milyon TL'yi geçenlerin **en likit 120 tanesini** izler.
+Bu iki sayı Ayarlar'dan değiştirilebilir (en fazla 600). Sığ hisseler, 15 dakikalık barları boşluklu olduğu
+ve sanal dolumları gerçekçi olmadığı için alınmaz. KAP'a ulaşılamazsa programın içindeki 25.11.2026 tarihli
+liste kullanılır. İsterseniz Ayarlar → Hisse evreni → “Yalnız aşağıdaki liste” ile kendi listenizi verebilirsiniz.
+
+## 5. Veri nereden geliyor?
 
 | Kaynak | Açıklama |
 |---|---|
@@ -62,7 +70,7 @@ Yahoo'yu) doğrudan kullanır. Borsa MCP'yi ayrıca Claude'a bağlayıp hisseler
 2 ve 4 saatlik barlar 1 saatlik barlardan, BIST seansına hizalı olarak üretilir
 (09:30–11:30, 11:30–13:30, … ve 09:30–13:30, 13:30–18:10).
 
-## 5. Robot nasıl karar veriyor?
+## 6. Robot nasıl karar veriyor?
 
 ### Beş motor (piyasada kullanılan iki büyük ailenin temsilcileri)
 
@@ -97,7 +105,7 @@ gecikmeli veriyle yapılamaz. Bu yüzden robotta yer almazlar.
 * Emirler sinyalin geldiği barın kapanışında verilir ve **bir sonraki barın açılışında** gerçekleşir
   (geleceği görme hatası olmasın diye). Oluşmakta olan bar hiçbir zaman kullanılmaz.
 
-## 6. Dosyalar
+## 7. Dosyalar
 
 ```
 BIST_Robot/
@@ -112,7 +120,7 @@ BIST_Robot/
 
 Canlı portföyü sıfırlamak için: Ayarlar → *Kaydet ve canlı sanal işlemi sıfırdan başlat*.
 
-## 7. Bilmeniz gerekenler
+## 8. Bilmeniz gerekenler
 
 * **Hiçbir motor kâr garantisi vermez.** Geçmiş simülasyonda iyi görünen ayarlar gelecekte aynı sonucu vermeyebilir.
   Ayarları geçmişe göre çok sık değiştirip “en iyi” sonucu aramak (aşırı uyum) en yaygın hatadır.
@@ -122,7 +130,7 @@ Canlı portföyü sıfırlamak için: Ayarlar → *Kaydet ve canlı sanal işlem
 * Temettüler hesaba katılmaz. Bedelsiz/bölünmelerde canlı portföydeki adet ve fiyatlar otomatik düzeltilir.
 * Program kapalıyken canlı portföy işlem yapmaz; açıldığında aradaki barları sırayla işleyerek yetişir.
 
-## 8. Sorun giderme
+## 9. Sorun giderme
 
 | Sorun | Çözüm |
 |---|---|

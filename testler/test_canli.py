@@ -14,13 +14,12 @@ ayar = A.dogrula({}); ayar["hisseler"] = SEM
 ham = {}
 for i, s in enumerate(SEM + ["XU100"]):
     r15, r1 = sentetik.uret(s, date(2024, 6, 3), date(2026, 11, 24), tohum=40 + i, endeks=(s == "XU100"), fiyat0=60 + 9 * i, drift_olcek=0.3)
-    ham[s] = {"15m": temizle(r15), "1h": temizle(r1), "bol": []}
+    ham[s] = {"15m": temizle(r15), "1h": temizle(r1)}
 
 def vy_an(simdi, gecikme=900):
     vy = VeriYoneticisi("/tmp/bist_canli_test", log=lambda *a: None)
     for s, d in ham.items():
-        vy.ham[s] = {"15m": [r for r in d["15m"] if r[0] <= simdi - gecikme],
-                     "1h": [r for r in d["1h"] if r[0] <= simdi - gecikme], "bol": []}
+        vy.ham_ata(s, [r for r in d["15m"] if r[0] <= simdi - gecikme], [r for r in d["1h"] if r[0] <= simdi - gecikme])
     return vy
 
 bas = datetime(2026, 11, 16, 9, 0, tzinfo=TZ).timestamp()

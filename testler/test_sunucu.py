@@ -20,15 +20,16 @@ os.makedirs(TMP)
 SEM = ["THYAO", "ASELS", "AKBNK", "GARAN", "TUPRS", "BIMAS", "KCHOL", "EREGL", "SISE", "FROTO"]
 with open(os.path.join(TMP, "ayarlar.json"), "w") as f:
     import json
-    json.dump({"hisseler": SEM, "baslangic_sermayesi": 250000, "komisyon_binde": 1.5}, f)
+    json.dump({"evren": "liste", "hisseler": SEM, "baslangic_sermayesi": 250000, "komisyon_binde": 1.5}, f)
 
 robot = Robot(TMP)
 drift = float(os.environ.get("DRIFT", "0.12"))
 for i, s in enumerate(SEM + ["XU100"]):
     r15, r1 = sentetik.uret(s, date(2023, 12, 25), date(2026, 11, 24), tohum=i + 11, endeks=(s == "XU100"),
                             fiyat0=40 + 30 * i, drift_olcek=drift)
-    robot.vy.ham[s] = {"15m": temizle(r15), "1h": temizle(r1), "bol": [], "kaynak": "sentetik"}
+    robot.vy.ham_ata(s, r15, r1, kaynak="sentetik")
 robot.vy.guncelle = lambda syms, tam=False, ilerleme=None: []
+robot.vy.birak = lambda tut: None
 robot.vy.son_kaynak = "sentetik-test"
 
 if os.environ.get("BOS"):

@@ -23,7 +23,7 @@ def veri_hazirla(simdi_tarih, drift=1.0):
     for i, s in enumerate(SEMBOLLER + ["XU100"]):
         r15, r1 = sentetik.uret(s, date(2023, 12, 25), simdi_tarih, tohum=i + 7, endeks=(s == "XU100"),
                                 fiyat0=50 + 20 * i, drift_olcek=drift)
-        vy.ham[s] = {"15m": temizle(r15), "1h": temizle(r1), "bol": [], "kaynak": "sentetik"}
+        vy.ham_ata(s, r15, r1, kaynak="sentetik")
     return vy
 
 
@@ -66,6 +66,7 @@ def kontrol(k, ayar):
 def main():
     ayar = A.dogrula({})
     ayar["hisseler"] = SEMBOLLER
+    ayar["evren"] = "liste"
     ayar["simulasyon_gun"] = 365
     simdi_tarih = date(2026, 11, 24)
     simdi = datetime(2026, 11, 24, 21, 0, tzinfo=TZ).timestamp()

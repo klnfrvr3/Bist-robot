@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import time
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 
 from .motorlar import MOTORLAR, sinyal_hesapla
 from .portfoy import Portfoy
@@ -18,11 +18,18 @@ from .veri import tarih_str, Seri
 ZAMAN_DILIMLERI = ["15m", "1h", "2h", "4h"]
 
 
-def _son(seri, n):
-    if n is None or len(seri) <= n:
-        return seri
-    k = len(seri) - n
-    return Seri(seri.aralik, seri.ts[k:], seri.o[k:], seri.h[k:], seri.l[k:], seri.c[k:], seri.v[k:], seri.te[k:])
+def _son(seri, n=None, t0=None):
+    """Seriyi son n bara ve/veya t0 anından sonrasına kırp (bellek ve hız)."""
+    k = 0
+    if t0 is not None:
+        k = bisect_left(seri.ts, t0)
+    if n is not None and len(seri) - k > n:
+        k = len(seri) - n
+    return seri if k == 0 else seri.dilim(k)
+
+
+def _nan(x):
+    return x is None or x != x
 
 
 class Konsey:
@@ -47,20 +54,24 @@ class Konsey:
         self.olaylar = []
 
     # ------------------------------------------------------------ hazırlık
-    def hazirla(self, seriler, endeks=None, son_bar=None):
-        """seriler: sym -> {tf: Seri}. son_bar: canlı modda hız için her seriden son N bar."""
+    def hazirla(self, seriler, endeks=None, son_bar=None, bas_T=None):
+        """seriler: sym -> {tf: Seri}. son_bar: canlı modda her seriden son N bar.
+        bas_T: simülasyon başlangıcı; bundan 70 gün öncesi (gösterge ısınması) dışındaki veri atılır."""
+        t0 = None if bas_T is None else bas_T - 70 * 86400
         self.veri = {}
         self.sig = {}
         for sym, d in seriler.items():
             if not d or len(d.get("1h") or []) == 0:
                 continue
-            d = {tf: _son(d[tf], son_bar) for tf in ZAMAN_DILIMLERI}
+            d = {tf: _son(d[tf], son_bar, t0) for tf in ZAMAN_DILIMLERI}
+            if len(d["1h"]) == 0:
+                continue
             self.veri[sym] = d
             self.sig[sym] = {tf: sinyal_hesapla(d[tf]) for tf in ZAMAN_DILIMLERI}
         self.endeks = None
         self.endeks_sig = None
         if endeks and len(endeks.get("1h") or []) > 0:
-            self.endeks = {tf: _son(endeks[tf], son_bar) for tf in ZAMAN_DILIMLERI}
+            self.endeks = {tf: _son(endeks[tf], son_bar, t0) for tf in ZAMAN_DILIMLERI}
             self.endeks_sig = {tf: sinyal_hesapla(self.endeks[tf]) for tf in ("1h", "4h")}
         olaylar = []
         for sym, d in self.veri.items():
@@ -103,7 +114,8 @@ class Konsey:
         i = self._idx(s, T)
         if i < 0:
             return None
-        return self.sig[sym][tf][ad][i]
+        v = self.sig[sym][tf][ad][i]
+        return None if v != v else v
 
     def _skor(self, sym, T, fiyat):
         W = self.ayar["zaman_dilimleri"]
@@ -122,9 +134,10 @@ class Konsey:
             ham[tf] = {}
             for m in MOTORLAR:
                 v = sg[tf][m][i]
-                ham[tf][m] = v
-                if v is None:
+                if v != v:
+                    ham[tf][m] = None
                     continue
+                ham[tf][m] = v
                 motor_top[m] += w * v
                 motor_w[m] += w
                 ust += self.agirlik[m] * v
@@ -139,7 +152,7 @@ class Konsey:
         if self.ayar.get("rejim_filtresi", True):
             for tf in ("4h", "2h"):
                 i = self._idx(d[tf], T)
-                if i >= 0 and sg[tf]["ema50"][i] is not None:
+                if i >= 0 and not _nan(sg[tf]["ema50"][i]):
                     rejim = d[tf].c[i] > sg[tf]["ema50"][i]
                     break
         atr = self._deger(sym, self.ayar.get("atr_zaman_dilimi", "4h"), "atr", T) or self._deger(sym, "1h", "atr", T)
@@ -151,7 +164,7 @@ class Konsey:
             return True
         s4 = self.endeks["4h"]
         i = self._idx(s4, T)
-        if i >= 0 and self.endeks_sig["4h"]["ema50"][i] is not None:
+        if i >= 0 and not _nan(self.endeks_sig["4h"]["ema50"][i]):
             if s4.c[i] > self.endeks_sig["4h"]["ema50"][i]:
                 return True
             s1 = self.endeks["1h"]

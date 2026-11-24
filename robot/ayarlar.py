@@ -17,6 +17,9 @@ VARSAYILAN = {
     "bsmv_dahil": True,                # komisyon üzerine %5 BSMV eklensin mi
     "min_komisyon_tl": 0.0,
     "kayma_yuzde": 0.05,               # emir başına fiyat kayması (%)
+    "evren": "tum",                    # tum: tüm BIST (YİP hariç, likiditeye göre) | liste: aşağıdaki liste
+    "evren_max_hisse": 120,            # 'tum' modunda en likit kaç hisse
+    "min_gunluk_hacim_tl": 10000000.0, # 'tum' modunda asgari günlük işlem hacmi (TL)
     "hisseler": BIST30,
     "endeks": "XU100",
     "veri_kaynagi": "otomatik",        # otomatik | yahoo | borsapy
@@ -99,6 +102,8 @@ def dogrula(a):
                 continue
         elif k == "atr_zaman_dilimi":
             v = v if v in ("15m", "1h", "2h", "4h") else "4h"
+        elif k == "evren":
+            v = v if v in ("tum", "liste") else "tum"
         elif k in ("veri_kaynagi",):
             v = v if v in ("otomatik", "yahoo", "borsapy") else "otomatik"
         elif k == "endeks":
@@ -113,6 +118,8 @@ def dogrula(a):
     out["islem_basina_risk_yuzde"] = min(max(0.1, out["islem_basina_risk_yuzde"]), 10.0)
     out["simulasyon_gun"] = min(max(5, out["simulasyon_gun"]), 1100)
     out["yenileme_sn"] = min(max(60, out["yenileme_sn"]), 3600)
+    out["evren_max_hisse"] = min(max(5, out["evren_max_hisse"]), 600)
+    out["min_gunluk_hacim_tl"] = max(0.0, out["min_gunluk_hacim_tl"])
     out["giris_esigi"] = min(max(0.0, out["giris_esigi"]), 1.0)
     out["cikis_esigi"] = min(max(-1.0, out["cikis_esigi"]), out["giris_esigi"])
     return out

@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import ayarlar as A
+from .evren import evren_olustur
 from .konsey import Konsey
 from .rapor import panel_verisi
 from .veri import VeriYoneticisi, borsapy_var_mi, dakika, yerel
@@ -38,6 +39,7 @@ class Robot:
         self.sim = None
         self.sim_ayar = None
         self.sim_bilgi = {}
+        self.evren = None
         self.durum = {"is": None, "ilerleme": 0.0, "mesaj": "Hazır", "son_guncelleme": None,
                       "veri_kaynagi": None, "basarisiz": [], "borsapy": borsapy_var_mi()}
         self._yukle()
@@ -98,8 +100,30 @@ class Robot:
         if self.canli is not None:
             self._yaz_json("canli_durum.json", {"aktif": self.canli_aktif, "konsey": self.canli.to_dict()})
 
+    def evren_guncelle(self, zorla=False):
+        """'tum' modunda günlük hisse evrenini (YİP hariç, likiditeye göre) hazırla."""
+        if self.ayar.get("evren") != "tum":
+            self.evren = None
+            return
+        try:
+            self.evren = evren_olustur(self.veri_klasor, int(self.ayar["evren_max_hisse"]),
+                                       float(self.ayar["min_gunluk_hacim_tl"]), log=self.log, zorla=zorla)
+        except Exception as e:
+            self.log("HATA hisse evreni: %s — Ayarlar'daki liste kullanılıyor." % e)
+            self.evren = None
+
     def semboller(self):
-        return list(self.ayar["hisseler"])
+        if self.ayar.get("evren") == "tum" and self.evren and self.evren.get("hisseler"):
+            liste = list(self.evren["hisseler"])
+        else:
+            liste = list(self.ayar["hisseler"])
+        # canlı portföyde tutulan ya da emri bekleyen hisseler her zaman izlenir
+        if self.canli is not None:
+            p = self.canli.portfoyler["konsey"]
+            for s in list(p.poz) + list(p.bekleyen):
+                if s not in liste:
+                    liste.append(s)
+        return liste
 
     # ------------------------------------------------------------ ayarlar
     def ayar_kaydet(self, yeni):
@@ -111,6 +135,7 @@ class Robot:
             self.ayar.update(temiz)
             A.kaydet(self.kok, self.ayar)
             self.vy.kaynak = self.ayar["veri_kaynagi"]
+            self.evren = None
             self._degisti()
         self.log("Ayarlar kaydedildi: sermaye %.0f TL, komisyon binde %.2f%s, kayma %%%.2f, %d hisse." % (
             self.ayar["baslangic_sermayesi"], self.ayar["komisyon_binde"],
@@ -119,7 +144,9 @@ class Robot:
 
     # ------------------------------------------------------------ veri
     def _veri_al(self, tam=False, ilerleme=None):
+        self.evren_guncelle()
         syms = self.semboller() + [self.ayar["endeks"]]
+        self.vy.birak(syms)
         basarisiz = self.vy.guncelle(syms, tam=tam, ilerleme=ilerleme)
         self.durum["basarisiz"] = basarisiz
         self.durum["veri_kaynagi"] = self.vy.son_kaynak
@@ -241,9 +268,12 @@ class Robot:
             ayar = copy.deepcopy(self.ayar)
             self.durum["mesaj"] = "Göstergeler hesaplanıyor..."
             k = Konsey(ayar)
-            k.hazirla(seriler, endeks)
+            bas = time.time() - gun * 86400
+            k.hazirla(seriler, endeks, bas_T=bas)
             ilk = k.ilk_T()
-            bas = max(time.time() - gun * 86400, ilk + 45 * 86400)
+            if ilk is None:
+                raise RuntimeError("Simülasyon için yeterli veri yok.")
+            bas = max(bas, ilk + 45 * 86400)
             k.son_T = bas
 
             def il_sim(x):
@@ -253,6 +283,7 @@ class Robot:
             k.calistir(ilerleme=il_sim)
             k.skorlari_tazele()
             bilgi = {"calisma": yerel(time.time()).strftime("%d.%m.%Y %H:%M"), "gun": gun,
+                     "evren": self._evren_ozet(),
                      "hisse": len(seriler), "sure_sn": round(time.time() - t0, 1),
                      "ilk15": None, "kaynak": self.vy.son_kaynak}
             ilk15 = [d["15m"].ts[0] for d in seriler.values() if len(d["15m"])]
@@ -300,8 +331,17 @@ class Robot:
         self.onbellek[anahtar] = js
         return js
 
+    def _evren_ozet(self):
+        if self.ayar.get("evren") == "tum" and self.evren:
+            e = self.evren
+            return {"mod": "tum", "sayi": len(e.get("hisseler", [])), "uygun": e.get("uygun_sayi"),
+                    "izinli": e.get("izinli_sayi"), "yip": e.get("yip_sayi"), "tarih": e.get("tarih"),
+                    "kaynak": e.get("kaynak"), "min_hacim": e.get("min_hacim_tl")}
+        return {"mod": "liste", "sayi": len(self.ayar.get("hisseler", []))}
+
     def genel_durum(self):
         d = dict(self.durum)
+        d["evren"] = self._evren_ozet()
         d.update({"surum": self.surum, "canli_var": self.canli is not None, "canli_aktif": self.canli_aktif,
                   "sim_var": self.sim is not None, "seans": self.seans_yakin(),
                   "saat": yerel(time.time()).strftime("%d.%m.%Y %H:%M:%S"), "program_surum": SURUM,

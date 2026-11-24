@@ -10,7 +10,11 @@ Konsey motoru bu oyları zaman dilimleri ve motor ağırlıklarıyla birleştiri
 """
 from __future__ import annotations
 
+from array import array
+
 from . import gostergeler as g
+
+NAN = float("nan")
 
 MOTORLAR = ["trend", "supertrend", "kirilim", "momentum", "donus"]
 ISINMA = 60  # bu kadar bar oluşmadan sinyal üretilmez
@@ -67,7 +71,7 @@ def sinyal_hesapla(seri):
     out["ema50"] = list(bos)
     out["st_yon"] = list(bos)
     if n == 0:
-        return out
+        return {k: array("d") for k in out}
 
     e20 = g.ema(c, 20)
     e50 = g.ema(c, 50)
@@ -130,4 +134,5 @@ def sinyal_hesapla(seri):
             else:
                 s = 0.0
             out["donus"][i] = s
-    return out
+    # bellek için: None -> NaN, liste -> sayı dizisi
+    return {k: array("d", (NAN if x is None else float(x) for x in v)) for k, v in out.items()}

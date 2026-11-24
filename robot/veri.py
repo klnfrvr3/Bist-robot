@@ -13,8 +13,10 @@ barlardan, BIST seansına hizalı olarak üretilir (seans 09:30 açılış emri,
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
+from array import array
 import time
 import urllib.error
 import urllib.parse
@@ -71,7 +73,7 @@ def tarih_str(t):
 # ----------------------------------------------------------------- seri
 
 class Seri:
-    """Bir sembol/zaman dilimi için OHLCV barları.
+    """Bir sembol/zaman dilimi için OHLCV barları (bellek için sayı dizileri).
 
     ts: bar başlangıcı (epoch sn), te: barın kapandığı an (karar anı).
     """
@@ -80,11 +82,16 @@ class Seri:
 
     def __init__(self, aralik, ts, o, h, l, c, v, te=None):
         self.aralik = aralik
-        self.ts, self.o, self.h, self.l, self.c, self.v = ts, o, h, l, c, v
+        self.ts = ts if isinstance(ts, array) else array("q", ts)
+        self.o = o if isinstance(o, array) else array("d", o)
+        self.h = h if isinstance(h, array) else array("d", h)
+        self.l = l if isinstance(l, array) else array("d", l)
+        self.c = c if isinstance(c, array) else array("d", c)
+        self.v = v if isinstance(v, array) else array("d", v)
         if te is None:
-            sn = ARALIK_SN[aralik]
-            te = [min(t + sn, gun_epoch(t, SEANS_SONU_DK)) for t in ts]
-        self.te = te
+            sn = ARALIK_SN.get(aralik, 3600)
+            te = [min(t + sn, gun_epoch(t, SEANS_SONU_DK)) for t in self.ts]
+        self.te = te if isinstance(te, array) else array("q", te)
 
     def __len__(self):
         return len(self.ts)
@@ -94,11 +101,17 @@ class Seri:
         if not rows:
             return cls(aralik, [], [], [], [], [], [])
         ts, o, h, l, c, v = (list(x) for x in zip(*rows))
-        return cls(aralik, ts, o, h, l, c, v)
+        return cls(aralik, [int(t) for t in ts], o, h, l, c, v)
+
+    def satirlar(self):
+        return list(zip(self.ts, self.o, self.h, self.l, self.c, self.v))
+
+    def dilim(self, a, b=None):
+        return Seri(self.aralik, self.ts[a:b], self.o[a:b], self.h[a:b], self.l[a:b], self.c[a:b],
+                    self.v[a:b], self.te[a:b])
 
     def ilk_n(self, n):
-        return Seri(self.aralik, self.ts[:n], self.o[:n], self.h[:n], self.l[:n],
-                    self.c[:n], self.v[:n], self.te[:n])
+        return self.dilim(0, n)
 
 
 def temizle(rows):
@@ -133,19 +146,18 @@ def temizle(rows):
     return out
 
 
-def kapali_barlar(rows, simdi):
-    """Canlı modda henüz oluşmakta olan son barı çıkar (bakış-ileri hatasını önler)."""
-    if not rows:
-        return rows
-    son = rows[-1][0]
-    if son > simdi:
-        rows = [r for r in rows if r[0] <= simdi]
-        if not rows:
-            return rows
-        son = rows[-1][0]
-    if not gun_bitti_mi(son, simdi):
-        return rows[:-1]
-    return rows
+def kapali_barlar(seri, simdi):
+    """Canlı modda henüz oluşmakta olan son barı çıkar (bakış-ileri hatasını önler). Seri ya da satır listesi alır."""
+    satir = not isinstance(seri, Seri)
+    if satir:
+        seri = Seri.satirlardan("15m", seri) if seri else Seri("15m", [], [], [], [], [], [])
+    n = len(seri)
+    while n and seri.ts[n - 1] > simdi:
+        n -= 1
+    if n and not gun_bitti_mi(seri.ts[n - 1], simdi):
+        n -= 1
+    out = seri if n == len(seri) else seri.dilim(0, n)
+    return out.satirlar() if satir else out
 
 
 def ust_zaman_dilimi(s1h, dk, simdi):
@@ -315,18 +327,52 @@ def borsapy_cek(sembol, aralik, kisa=False):
 
 # ----------------------------------------------------------------- yönetici
 
-class VeriYoneticisi:
-    """Önbellekli veri çekici. Gün içinde kısa güncelleme, her gün ilk çağrıda tam yenileme."""
+_hiz_kilit = threading.Lock()
+_son_istek = [0.0]
 
-    def __init__(self, klasor, kaynak="otomatik", log=print, isci=4):
+
+def _hiz_siniri(aralik_sn=0.12):
+    """Sunuculara saniyede ~8 istekten fazla gitme."""
+    with _hiz_kilit:
+        bekle = _son_istek[0] + aralik_sn - time.time()
+        if bekle > 0:
+            time.sleep(bekle)
+        _son_istek[0] = time.time()
+
+
+SAKLA_GUN = {"15m": 62, "1h": 800}
+
+
+def _aralik_sec(aralik, son_ts, simdi):
+    """Önbellekteki son bara göre ne kadar geriye gidileceğini seç (gereksiz indirmeyi önler)."""
+    if son_ts is None:
+        return TAM_ARALIK[aralik], True
+    bosluk = simdi - son_ts
+    if tarih_str(son_ts) == tarih_str(simdi):
+        return "1d", False
+    if bosluk <= 4 * 86400:
+        return "5d", False
+    if bosluk <= 25 * 86400:
+        return "1mo", False
+    return TAM_ARALIK[aralik], True
+
+
+class VeriYoneticisi:
+    """Önbellekli, artımlı veri çekici. Yalnız eksik kısmı indirir; bölünme görülürse hisseyi baştan çeker."""
+
+    def __init__(self, klasor, kaynak="otomatik", log=print, isci=6):
         self.klasor = klasor
         self.kaynak = kaynak
         self.log = log
         self.isci = isci
         os.makedirs(klasor, exist_ok=True)
-        self.ham = {}          # sym -> {"15m": rows, "1h": rows, "bol": [...], "kaynak": str}
+        self.ham = {}          # sym -> {"15m": Seri, "1h": Seri, "bol": [...], "kaynak": str}
         self.kilit = threading.Lock()
         self.son_kaynak = None
+
+    def ham_ata(self, sym, rows15, rows1, bol=None, kaynak="?"):
+        self.ham[sym] = {"15m": Seri.satirlardan("15m", temizle(rows15)), "1h": Seri.satirlardan("1h", temizle(rows1)),
+                         "bol": [tuple(b) for b in (bol or [])], "kaynak": kaynak}
 
     # -- önbellek
     def _yol(self, sym, aralik):
@@ -335,8 +381,7 @@ class VeriYoneticisi:
     def _oku(self, sym, aralik):
         try:
             with open(self._yol(sym, aralik), "r", encoding="utf-8") as f:
-                d = json.load(f)
-            return d
+                return json.load(f)
         except Exception:
             return None
 
@@ -348,43 +393,50 @@ class VeriYoneticisi:
         os.replace(tmp, self._yol(sym, aralik))
 
     # -- tek çekim
-    def _cek(self, sym, aralik, kisa):
-        rng = KISA_ARALIK[aralik] if kisa else TAM_ARALIK[aralik]
+    def _cek(self, sym, aralik, rng, tam):
         sira = {"yahoo": ["yahoo"], "borsapy": ["borsapy"]}.get(self.kaynak, ["yahoo", "borsapy"])
         hatalar = []
         for k in sira:
             try:
+                _hiz_siniri()
                 if k == "yahoo":
                     rows, bol = yahoo_cek(sym, aralik, rng)
                 else:
                     if not borsapy_var_mi():
                         hatalar.append("borsapy kurulu değil")
                         continue
-                    rows, bol = borsapy_cek(sym, aralik, kisa)
+                    rows, bol = borsapy_cek(sym, aralik, kisa=not tam)
                 return rows, bol, k
             except Exception as e:
                 hatalar.append(str(e))
         raise VeriHatasi("; ".join(hatalar))
 
     def _sembol_guncelle(self, sym, tam):
-        sonuc = {}
-        bugun = tarih_str(time.time())
+        sonuc = {"bol": []}
+        simdi = time.time()
         for aralik in ("15m", "1h"):
-            on = self._oku(sym, aralik)
-            eski = on and tarih_str(on.get("zaman", 0)) == bugun and on.get("rows")
-            kisa = bool(eski) and not tam
-            rows, bol, kaynak = self._cek(sym, aralik, kisa)
-            if kisa:
-                birlesik = {r[0]: r for r in on["rows"]}
+            on = None if tam else self._oku(sym, aralik)
+            eski = (on or {}).get("rows") or []
+            son_ts = eski[-1][0] if eski else None
+            rng, tam_mi = _aralik_sec(aralik, son_ts, simdi)
+            rows, bol, kaynak = self._cek(sym, aralik, rng, tam_mi)
+            eski_bol = set(tuple(b) for b in ((on or {}).get("bol") or []))
+            yeni_bol = set(tuple(b) for b in bol) - eski_bol
+            if not tam_mi and yeni_bol and eski:
+                # bölünme/bedelsiz: geçmiş fiyatlar değişti, baştan çek
+                rows, bol, kaynak = self._cek(sym, aralik, TAM_ARALIK[aralik], True)
+                tam_mi = True
+            if not tam_mi and eski:
+                birlesik = {r[0]: r for r in eski}
                 for r in rows:
                     birlesik[r[0]] = r
                 rows = [birlesik[k] for k in sorted(birlesik)]
-                bol = sorted(set(tuple(b) for b in (on.get("bol") or [])) | set(tuple(b) for b in bol))
-            rows = temizle(rows)
-            self._yaz(sym, aralik, rows, [list(b) for b in bol], kaynak)
-            sonuc[aralik] = rows
-            sonuc.setdefault("bol", [])
-            sonuc["bol"] = sorted(set(tuple(b) for b in sonuc["bol"]) | set(tuple(b) for b in bol))
+            sinir = simdi - SAKLA_GUN[aralik] * 86400
+            rows = [r for r in temizle(rows) if r[0] >= sinir]
+            bol_tum = sorted(eski_bol | set(tuple(b) for b in bol))
+            self._yaz(sym, aralik, rows, [list(b) for b in bol_tum], kaynak)
+            sonuc[aralik] = Seri.satirlardan(aralik, rows)
+            sonuc["bol"] = sorted(set(sonuc["bol"]) | set(bol_tum))
             sonuc["kaynak"] = kaynak
         return sonuc
 
@@ -400,11 +452,11 @@ class VeriYoneticisi:
                     self.ham[sym] = r
                     self.son_kaynak = r.get("kaynak")
             except Exception as e:
-                # ağ yoksa önbellekteki veriyi kullan
                 on15, on1 = self._oku(sym, "15m"), self._oku(sym, "1h")
                 if on15 and on1 and on15.get("rows") and on1.get("rows"):
                     with self.kilit:
-                        self.ham[sym] = {"15m": temizle(on15["rows"]), "1h": temizle(on1["rows"]),
+                        self.ham[sym] = {"15m": Seri.satirlardan("15m", temizle(on15["rows"])),
+                                         "1h": Seri.satirlardan("1h", temizle(on1["rows"])),
                                          "bol": [tuple(b) for b in (on1.get("bol") or [])],
                                          "kaynak": (on1.get("kaynak") or "?") + " (önbellek)"}
                     self.log("UYARI %s güncellenemedi, önbellek kullanılıyor: %s" % (sym, e))
@@ -419,7 +471,14 @@ class VeriYoneticisi:
 
         with ThreadPoolExecutor(max_workers=self.isci) as ex:
             list(ex.map(is_, semboller))
+        # artık evrende olmayan hisseleri bellekten at
         return basarisiz
+
+    def birak(self, tut):
+        tut = set(tut)
+        for s in list(self.ham):
+            if s not in tut:
+                self.ham.pop(s, None)
 
     def seriler(self, sym, simdi=None):
         """{"15m","1h","2h","4h"} -> Seri (yalnızca kapanmış barlar)."""
@@ -427,10 +486,8 @@ class VeriYoneticisi:
         d = self.ham.get(sym)
         if not d:
             return None
-        r15 = kapali_barlar(d.get("15m") or [], simdi)
-        r1 = kapali_barlar(d.get("1h") or [], simdi)
-        s15 = Seri.satirlardan("15m", r15)
-        s1 = Seri.satirlardan("1h", r1)
+        s15 = kapali_barlar(d["15m"], simdi)
+        s1 = kapali_barlar(d["1h"], simdi)
         return {"15m": s15, "1h": s1,
                 "2h": ust_zaman_dilimi(s1, 120, simdi),
                 "4h": ust_zaman_dilimi(s1, 240, simdi)}
