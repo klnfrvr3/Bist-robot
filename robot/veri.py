@@ -419,7 +419,21 @@ class VeriYoneticisi:
             eski = (on or {}).get("rows") or []
             son_ts = eski[-1][0] if eski else None
             rng, tam_mi = _aralik_sec(aralik, son_ts, simdi)
-            rows, bol, kaynak = self._cek(sym, aralik, rng, tam_mi)
+            try:
+                rows, bol, kaynak = self._cek(sym, aralik, rng, tam_mi)
+            except VeriHatasi as e:
+                # yeni halka arzlarda Yahoo uzun aralığı reddeder (HTTP 422): daha kısa aralıkları dene
+                if "422" not in str(e) or not tam_mi:
+                    raise
+                rows = None
+                for kisa in (["1y", "6mo", "3mo", "1mo"] if aralik == "1h" else ["1mo", "5d"]):
+                    try:
+                        rows, bol, kaynak = self._cek(sym, aralik, kisa, True)
+                        break
+                    except VeriHatasi:
+                        continue
+                if rows is None:
+                    raise
             eski_bol = set(tuple(b) for b in ((on or {}).get("bol") or []))
             yeni_bol = set(tuple(b) for b in bol) - eski_bol
             if not tam_mi and yeni_bol and eski:
