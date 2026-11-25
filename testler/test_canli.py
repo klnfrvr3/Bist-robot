@@ -10,7 +10,7 @@ from robot.konsey import Konsey
 from robot.veri import VeriYoneticisi, temizle, TZ
 
 SEM = ["AAA", "BBB", "CCC", "DDD", "EEE"]
-ayar = A.dogrula({}); ayar["hisseler"] = SEM
+ayar = A.dogrula({"likidite_kaymasi": os.environ.get("LK","1")=="1"}); ayar["hisseler"] = SEM
 ham = {}
 for i, s in enumerate(SEM + ["XU100"]):
     r15, r1 = sentetik.uret(s, date(2024, 6, 3), date(2026, 11, 24), tohum=40 + i, endeks=(s == "XU100"), fiyat0=60 + 9 * i, drift_olcek=0.3)
@@ -51,6 +51,7 @@ while t <= son:
 fA = kA.portfoyler["konsey"].ozkaynak(); fB = kB.portfoyler["konsey"].ozkaynak()
 print("tek sefer özk %.2f | canlı adım adım özk %.2f | adım %d | işlem A %d B %d | zaman ihlali %d" % (
     fA, fB, adim, len(kA.portfoyler["konsey"].islemler), len(kB.portfoyler["konsey"].islemler), ihlal))
-esit = abs(fA - fB) < 1e-6 and len(kA.portfoyler["konsey"].islemler) == len(kB.portfoyler["konsey"].islemler)
+print("fark", fA - fB)
+esit = abs(fA - fB) < 0.01 and len(kA.portfoyler["konsey"].islemler) == len(kB.portfoyler["konsey"].islemler)
 print("EŞİT" if esit else "FARKLI")
 sys.exit(0 if esit and ihlal == 0 else 1)

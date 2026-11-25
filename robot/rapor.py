@@ -157,7 +157,7 @@ def _karar(sk, p, sym, ayar, endeks_ok=True):
             return "AL sinyali · bugün stop oldu"
         if len(p.poz) + p.bekleyen_al() >= int(ayar["max_acik_pozisyon"]):
             return "AL sinyali · pozisyon sınırı"
-        if p.boyut(sk.get("fiyat"), sk.get("atr")) <= 0:
+        if p.boyut(sk.get("fiyat"), sk.get("atr"), sym) <= 0:
             return "AL sinyali · nakit yetersiz"
         return "AL"
     return "BEKLE"

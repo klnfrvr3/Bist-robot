@@ -41,8 +41,15 @@ class Portfoy:
             return 0.0
         return max(deger * self.kom_orani(), float(self.ayar.get("min_komisyon_tl", 0) or 0))
 
-    def kayma(self):
-        return float(self.ayar.get("kayma_yuzde", 0.05)) / 100.0
+    def kayma(self, sym=None):
+        """Temel kayma + likiditeye bağlı ek kayma (sığ hissede alış-satış makası ve fiyat etkisi büyür):
+        günlük 50 milyon TL hacimde +%0,10; 10 milyonda ~+%0,22; 500 milyonda ~+%0,03; en fazla +%0,50."""
+        k = float(self.ayar.get("kayma_yuzde", 0.05)) / 100.0
+        if sym and self.ayar.get("likidite_kaymasi", True):
+            h = getattr(self, "likidite", {}).get(sym)
+            if h:
+                k += min(0.005, 0.001 * math.sqrt(5e7 / max(h, 1e6)))
+        return k
 
     # ------------------------------------------------------------ değerleme
     def poz_degeri(self):
@@ -91,7 +98,7 @@ class Portfoy:
             self.noktalar.append([T, eq])
 
     # ------------------------------------------------------------ emir
-    def boyut(self, fiyat, atr):
+    def boyut(self, fiyat, atr, sym=None):
         if not fiyat or not atr or atr <= 0:
             return 0
         a = self.ayar
@@ -101,7 +108,7 @@ class Portfoy:
         a1 = math.floor(risk_tl / mesafe) if mesafe > 0 else 0
         a2 = math.floor(ozk * float(a["max_pozisyon_yuzde"]) / 100.0 / fiyat)
         kullanilabilir = self.nakit - self.rezerv()
-        a3 = math.floor(kullanilabilir / (fiyat * (1 + self.kom_orani() + 2 * self.kayma())))
+        a3 = math.floor(kullanilabilir / (fiyat * (1 + self.kom_orani() + 2 * self.kayma(sym))))
         adet = max(0, min(a1, a2, a3))
         if adet * fiyat < float(a.get("min_islem_tl", 1000)):
             return 0
@@ -112,7 +119,7 @@ class Portfoy:
             return False
         e = {"yon": yon, "adet": int(adet), "sebep": sebep, "T": T, "skor": skor, "atr": atr}
         if yon == "AL" and fiyat:
-            e["rezerv"] = adet * fiyat * (1 + self.kom_orani() + 2 * self.kayma())
+            e["rezerv"] = adet * fiyat * (1 + self.kom_orani() + 2 * self.kayma(sym))
         self.bekleyen[sym] = e
         return True
 
@@ -123,7 +130,7 @@ class Portfoy:
         return self.gunler[d]
 
     def _al_gerceklestir(self, sym, e, o, T, atr):
-        p = o * (1 + self.kayma())
+        p = o * (1 + self.kayma(sym))
         adet = e["adet"]
         k = self.komisyon(adet * p)
         if adet * p + k > self.nakit:
@@ -152,7 +159,7 @@ class Portfoy:
         ps = self.poz.pop(sym, None)
         if not ps:
             return
-        p = fiyat * (1 - self.kayma())
+        p = fiyat * (1 - self.kayma(sym))
         deger = ps["adet"] * p
         k = self.komisyon(deger)
         self.nakit += deger - k
@@ -195,7 +202,7 @@ class Portfoy:
                 if atr and atr > 0:
                     yeni = ps["en_yuksek"] - float(a["iz_suren_atr_kat"]) * atr
                     if c >= ps["giris"] + float(a["basabas_atr_kat"]) * ps["atr_giris"]:
-                        basabas = ps["giris"] * (1 + 2 * self.kom_orani() + 2 * self.kayma())
+                        basabas = ps["giris"] * (1 + 2 * self.kom_orani() + 2 * self.kayma(sym))
                         yeni = max(yeni, basabas)
                     if yeni > ps["stop"]:
                         ps["stop"] = yeni

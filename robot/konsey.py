@@ -73,6 +73,24 @@ class Konsey:
         if endeks and len(endeks.get("1h") or []) > 0:
             self.endeks = {tf: _son(endeks[tf], son_bar, t0) for tf in ZAMAN_DILIMLERI}
             self.endeks_sig = {tf: sinyal_hesapla(self.endeks[tf]) for tf in ("1h", "4h")}
+        # likidite: o günden ÖNCEKİ 20 işlem gününün ortalama günlük TL hacmi (yalnız kayma maliyeti için;
+        # geleceği kullanmaz, canlı ve simülasyon aynı sonucu verir)
+        from .veri import gun_no
+        self.lik_gun = {}
+        for sym, d in self.veri.items():
+            s1 = d["1h"]
+            gunluk = {}
+            for j in range(len(s1)):
+                g = gun_no(s1.ts[j])
+                gunluk[g] = gunluk.get(g, 0.0) + s1.c[j] * s1.v[j]
+            gunler = sorted(gunluk)
+            degerler = []
+            for k in range(len(gunler)):
+                onceki = [gunluk[x] for x in gunler[max(0, k - 20):k]]
+                degerler.append(sum(onceki) / len(onceki) if len(onceki) >= 5 else 0.0)
+            self.lik_gun[sym] = (gunler, degerler)
+        for p in self.portfoyler.values():
+            p.likidite = {}
         olaylar = []
         for sym, d in self.veri.items():
             s15, s1 = d["15m"], d["1h"]
@@ -156,8 +174,18 @@ class Konsey:
                     rejim = d[tf].c[i] > sg[tf]["ema50"][i]
                     break
         atr = self._deger(sym, self.ayar.get("atr_zaman_dilimi", "4h"), "atr", T) or self._deger(sym, "1h", "atr", T)
+        if self.ayar.get("goreli_guc_filtresi", False) and rejim and self.endeks:
+            rejim = self._goreli_guc(sym, T) is not False
         return {"konsey": konsey, "motor": motor_skor, "tf": tf_skor, "rejim": rejim,
                 "atr": atr, "fiyat": fiyat, "T": T}
+
+    def _goreli_guc(self, sym, T, n=20):
+        """Hisse son n adet 4 saatlik barda BIST100'den iyi mi? Veri yoksa None."""
+        s, e = self.veri[sym]["4h"], self.endeks["4h"]
+        i, j = self._idx(s, T), self._idx(e, T)
+        if i < n or j < n or not s.c[i - n] or not e.c[j - n]:
+            return None
+        return s.c[i] / s.c[i - n] > e.c[j] / e.c[j - n]
 
     def _endeks_ok(self, T):
         if not self.ayar.get("endeks_filtresi", True) or not self.endeks:
@@ -249,6 +277,19 @@ class Konsey:
             self.gun = d
         for p in self.portfoyler.values():
             p.gun_kontrol(T)
+        lik = {}
+        from .veri import gun_no
+        g0 = gun_no(T)
+        for (_, sym, _tf, _i) in grup:
+            gl = getattr(self, "lik_gun", {}).get(sym)
+            if gl:
+                k = bisect_right(gl[0], g0) - 1
+                if k >= 0 and gl[1][k] > 0:
+                    lik[sym] = gl[1][k]
+        for p in self.portfoyler.values():
+            if not hasattr(p, "likidite"):
+                p.likidite = {}
+            p.likidite.update(lik)
 
         # 1) yeni barlar: emirler açılışta gerçekleşir, stoplar kontrol edilir
         skorlar = {}
@@ -288,7 +329,7 @@ class Konsey:
                 if len(p.poz) + p.bekleyen_al() >= maks:
                     break
                 sk = skorlar[sym]
-                adet = p.boyut(sk["fiyat"], sk["atr"])
+                adet = p.boyut(sk["fiyat"], sk["atr"], sym)
                 if adet > 0:
                     p.emir(sym, "AL", adet, "Sinyal (skor %.2f)" % s, T, s, sk["fiyat"], sk["atr"])
 

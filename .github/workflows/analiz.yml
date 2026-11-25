@@ -1,0 +1,34 @@
+name: Gerçek veriyle analiz
+
+on:
+  push:
+    branches: [analiz]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  analiz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Simülasyonlar
+        env:
+          ANALIZ_GUN: "1000"
+          ANALIZ_HISSE: "120"
+        run: python testler/analiz.py
+      - name: Sonuçları 'analiz-sonuc' dalına yaz
+        if: always()
+        run: |
+          mkdir -p analiz_sonuc && cd analiz_sonuc
+          git init -q -b analiz-sonuc
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -qm "Analiz #${{ github.run_number }}" || true
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" analiz-sonuc

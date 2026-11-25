@@ -37,6 +37,8 @@ VARSAYILAN = {
     "basabas_atr_kat": 1.5,
     "gunluk_zarar_limiti_yuzde": 3.0,
     "endeks_filtresi": True,
+    "goreli_guc_filtresi": False,      # yalnız son dönemde BIST100'den güçlü hisseleri al
+    "likidite_kaymasi": True,          # sığ hissede ek fiyat kayması
     "rejim_filtresi": True,
     "min_islem_tl": 1000.0,
     "simulasyon_gun": 365,
