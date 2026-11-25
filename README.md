@@ -39,6 +39,9 @@ aleyhte bir fiyattan gerçekleşmesini taklit eder.
 ## 3. Panel
 
 * **Anlık durum** (en üstte) — açık pozisyonlar, anlık kâr/zararları ve stop seviyeleri, bekleyen emirler ve son işlemler.
+* **Fiyatlar ve takip** — robotun izlediği tüm hisselerin son fiyatı, günlük değişimi, gün aralığı, hacmi ve robot skoru.
+  Kendi **takip listenize** istediğiniz hisseyi (Yakın İzleme Pazarı dahil) ekleyebilirsiniz; bu liste yalnız bilgi
+  amaçlıdır, robotun portföyüne kaydedilmez ve al-sat kararlarını etkilemez. Sekme açıkken takip listesi dakikada bir yenilenir.
 * **Kazançlar** — tek menüde Günlük / Haftalık / Aylık / Yıllık kâr tablosu. Bir satıra dokununca ayrıntısı açılır
   (hafta ve ay → günler, yıl → aylar, gün → o günün işlemleri). En altta tüm dönemin toplamı.
 

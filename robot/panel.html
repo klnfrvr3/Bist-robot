@@ -162,6 +162,8 @@ legend{font-weight:600;font-size:13px;padding:0 6px}
 footer{margin-top:28px;color:var(--ink-3);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
 .note{font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}
 .hidden{display:none !important}
+#takipKod::placeholder{text-transform:none}
+#p-fiyat .btn.ghost{padding:4px 10px;font-size:12.5px}
 .anlik-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
 .anlik-grid>div{min-width:0}
 @media (max-width:1000px){.anlik-grid{grid-template-columns:minmax(0,1fr)}}
@@ -263,6 +265,7 @@ tr.alt td:first-child{padding-left:28px}
 
     <div class="tabs" id="tabs">
       <button data-p="kazanc" class="on">Kazançlar</button>
+      <button data-p="fiyat">Fiyatlar ve takip <span class="c" id="cTakip"></span></button>
       <button data-p="pozisyon">Pozisyonlar <span class="c" id="cPoz"></span></button>
       <button data-p="islem">İşlemler <span class="c" id="cIslem"></span></button>
       <button data-p="sinyal">Sinyaller</button>
@@ -279,6 +282,21 @@ tr.alt td:first-child{padding-left:28px}
       <div class="card" style="margin-bottom:12px"><div class="hd"><h3 id="kzBaslik">Haftalık kâr / zarar</h3><span class="sub">net, komisyon düşülmüş · TL</span></div><div class="bd"><div class="chart" id="kzBar"></div></div></div>
       <div class="note" style="margin-bottom:10px">Bir satıra dokunursanız o dönemin ayrıntısı açılır (hafta ve ay → günler, yıl → aylar, gün → işlemler).</div>
       <div class="tw" id="kzTablo"></div>
+    </div>
+
+    <div class="pane" id="p-fiyat">
+      <div class="note">Takip listesi yalnız <b>bilgi ve takip</b> içindir: buraya eklediğiniz hisseler robotun portföyüne kaydedilmez ve robotun al-sat kararlarını etkilemez. Fiyatlar Yahoo'dan yaklaşık 15 dakika gecikmelidir; bu sekme açıkken takip listesi dakikada bir yenilenir.</div>
+      <div class="row">
+        <input type="text" id="takipKod" list="takipSecenek" placeholder="Hisse kodu, ör. THYAO" autocomplete="off" style="text-transform:uppercase;width:200px">
+        <datalist id="takipSecenek"></datalist>
+        <button class="btn primary" id="takipEkle">Takibe ekle</button>
+        <span class="mut" id="takipMesaj"></span>
+        <span class="spacer"></span>
+        <span class="mut num" id="fiyatSaat"></span>
+      </div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Takip listem</h3><span class="sub" id="endeksSatir"></span></div><div class="bd"><div class="tw" id="takipTablo"></div></div></div>
+      <div class="row"><b style="font-size:14px">Robotun izlediği hisseler</b><input type="text" id="fiyatAra" placeholder="Ara" style="width:140px"><select id="fiyatSira"><option value="hacim">Hacme göre</option><option value="artan">En çok yükselen</option><option value="azalan">En çok düşen</option><option value="kod">Koda göre</option></select><span class="mut" id="fiyatSayi"></span></div>
+      <div class="tw" id="fiyatTablo" style="max-height:640px"></div>
     </div>
 
     <div class="pane" id="p-pozisyon">
@@ -541,6 +559,41 @@ function kazancCiz(){
   $$('#kzTablo tr[data-k]').forEach(tr=>tr.onclick=()=>{ const key=t+':'+tr.dataset.k; KZ_ACIK.has(key)?KZ_ACIK.delete(key):KZ_ACIK.add(key); kazancCiz(); });
 }
 
+let FIYAT=null, FIYAT_T=0;
+async function fiyatYukle(tazele){
+  try{ FIYAT = await api('/api/fiyatlar'+(tazele?'?tazele=1':'')); FIYAT_T=Date.now(); fiyatCiz(); }catch(e){}
+}
+function degisimSpan(x){ return x==null? '<span class="mut">—</span>' : yuzde(x); }
+function fiyatSatir(r, takipte){
+  const durum = r.robot_pozisyon? '<span class="tag">robotta pozisyon var</span>' : (r.robot_izliyor? '<span class="mut">robot izliyor</span>' : '<span class="mut">yalnız takip</span>');
+  const btn = takipte? `<button class="btn ghost" data-cikar="${esc(r.kod)}">Çıkar</button>` : (r.takipte? '<span class="mut">takipte</span>' : `<button class="btn ghost" data-ekle="${esc(r.kod)}">+ Takip</button>`);
+  return `<tr><td class="l"><b>${esc(r.kod)}</b></td><td class="num">${r.fiyat==null?'<span class="mut">bekleniyor…</span>':N2.format(r.fiyat)}</td><td>${degisimSpan(r.degisim)}</td><td class="num opt">${r.dusuk==null?'—':N2.format(r.dusuk)+' – '+N2.format(r.yuksek)}</td><td class="num opt">${r.hacim_tl==null?'—':kisa(r.hacim_tl)}</td><td class="num">${r.skor==null?'—':isr(r.skor)}</td><td class="l opt">${takipte?durum:''}</td><td class="l mut num opt">${r.zaman||''}</td><td class="l">${btn}</td></tr>`;
+}
+const FIYAT_BASLIK = '<thead><tr><th class="l">Hisse</th><th>Fiyat</th><th>Günlük</th><th class="opt">Gün aralığı</th><th class="opt">Hacim ₺</th><th>Robot skoru</th><th class="l opt">Durum</th><th class="l opt">Veri</th><th></th></tr></thead>';
+function fiyatCiz(){
+  if(!FIYAT) return;
+  $('#cTakip').textContent = FIYAT.takip.length||'';
+  $('#fiyatSaat').textContent = 'güncellendi '+FIYAT.saat;
+  const e=FIYAT.endeks; $('#endeksSatir').innerHTML = e && e.fiyat!=null? `BIST 100: <b class="num">${N2.format(e.fiyat)}</b> ${degisimSpan(e.degisim)}` : '';
+  const yip=new Set(FIYAT.yip||[]);
+  $('#takipSecenek').innerHTML = FIYAT.secenek.map(k=>`<option value="${esc(k)}">${yip.has(k)?'Yakın İzleme Pazarı':''}</option>`).join('');
+  $('#takipTablo').innerHTML = FIYAT.takip.length? `<table>${FIYAT_BASLIK}<tbody>${FIYAT.takip.map(r=>fiyatSatir(r,true)).join('')}</tbody></table>` : '<table><tbody><tr class="empty"><td>Takip listeniz boş. Yukarıdan bir hisse kodu yazıp “Takibe ekle”ye basın ya da aşağıdaki listeden “+ Takip” seçin.</td></tr></tbody></table>';
+  const ara=$('#fiyatAra').value.trim().toUpperCase(), sira=$('#fiyatSira').value;
+  let L=FIYAT.hepsi.filter(r=>!ara||r.kod.includes(ara));
+  const d=v=>v==null?-1e9:v;
+  if(sira==='hacim') L.sort((a,b)=>d(b.hacim_tl)-d(a.hacim_tl)); else if(sira==='artan') L.sort((a,b)=>d(b.degisim)-d(a.degisim)); else if(sira==='azalan') L.sort((a,b)=>(a.degisim==null?1e9:a.degisim)-(b.degisim==null?1e9:b.degisim)); else L.sort((a,b)=>a.kod.localeCompare(b.kod));
+  $('#fiyatSayi').textContent = `${L.length} hisse`;
+  $('#fiyatTablo').innerHTML = `<table>${FIYAT_BASLIK}<tbody>${L.map(r=>fiyatSatir(r,false)).join('')||'<tr class="empty"><td colspan="9">Veri yok — ilk güncelleme bekleniyor</td></tr>'}</tbody></table>`;
+  $$('#p-fiyat [data-ekle]').forEach(b=>b.onclick=()=>takipIslem({ekle:b.dataset.ekle}));
+  $$('#p-fiyat [data-cikar]').forEach(b=>b.onclick=()=>takipIslem({cikar:b.dataset.cikar}));
+}
+async function takipIslem(g){
+  const r = await api('/api/takip', g);
+  $('#takipMesaj').textContent = r.ok? (g.ekle? `${g.ekle} takibe eklendi; fiyatı birkaç saniye içinde gelir.` : `${g.cikar} çıkarıldı.`) : (r.hata||'');
+  await fiyatYukle(false);
+  if(g.ekle) setTimeout(()=>fiyatYukle(false), 4000);
+}
+
 function pozisyonCiz(){
   const P=PANEL.pozisyonlar;
   $('#cPoz').textContent=P.length||'';
@@ -722,9 +775,13 @@ async function yenile(){
 
 function modAyarla(m){ MOD=m; localStorage.setItem('mod',m); $$('#modSec button').forEach(b=>b.classList.toggle('on',b.dataset.mod===m)); SON_SURUM=-1; }
 $$('#modSec button').forEach(b=>b.onclick=()=>{ modAyarla(b.dataset.mod); yenile(); });
-$$('#tabs button').forEach(b=>b.onclick=()=>{ $$('#tabs button').forEach(x=>x.classList.toggle('on',x===b)); $$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p)); hepsiniCiz(); });
+$$('#tabs button').forEach(b=>b.onclick=()=>{ $$('#tabs button').forEach(x=>x.classList.toggle('on',x===b)); $$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p)); hepsiniCiz(); if(b.dataset.p==='fiyat') fiyatYukle(true); });
 $$('#aralikSec button').forEach(b=>b.onclick=()=>{ ARALIK=+b.dataset.g; $$('#aralikSec button').forEach(x=>x.classList.toggle('on',x===b)); egriCiz(); });
 $$('#kzTur button').forEach(b=>b.onclick=()=>{ KZ_TUR=b.dataset.t; localStorage.setItem('kzTur',KZ_TUR); kazancCiz(); });
+$('#takipEkle').onclick=()=>{ const k=$('#takipKod').value.trim().toUpperCase(); if(k){ takipIslem({ekle:k}); $('#takipKod').value=''; } };
+$('#takipKod').onkeydown=ev=>{ if(ev.key==='Enter') $('#takipEkle').click(); };
+$('#fiyatAra').oninput=fiyatCiz; $('#fiyatSira').onchange=fiyatCiz;
+setInterval(()=>{ if($('#p-fiyat').classList.contains('on')) fiyatYukle(true); }, 30000);
 $('#islemAra').oninput=islemlerCiz; $('#islemYon').onchange=islemlerCiz;
 $('#tema').onclick=()=>{ const t=document.documentElement.dataset.theme==='dark'?'light':'dark'; document.documentElement.dataset.theme=t; localStorage.setItem('tema',t); hepsiniCiz(); };
 let rz; addEventListener('resize',()=>{clearTimeout(rz); rz=setTimeout(hepsiniCiz,200);});

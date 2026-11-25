@@ -128,7 +128,7 @@ def evren_olustur(klasor, max_hisse=100, min_hacim_tl=20e6, log=print, zorla=Fal
         log("UYARI hisse evreni oluşturulamadı; önceki liste kullanılıyor.")
         return onceki
     d = {"tarih": bugun, "kaynak": " + ".join(kaynak), "max_hisse": max_hisse, "min_hacim_tl": min_hacim_tl,
-         "izinli_sayi": len(izinli), "yip_sayi": len(yip), "yip": sorted(yip), "uygun_sayi": len(adaylar),
+         "izinli_sayi": len(izinli), "yip_sayi": len(yip), "yip": sorted(yip), "izinli": sorted(izinli), "uygun_sayi": len(adaylar),
          "hisseler": secilen,
          "hacim": {k: round(hacim[k][0]) for k in secilen}}
     tmp = yol + ".tmp"

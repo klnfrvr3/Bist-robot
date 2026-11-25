@@ -13,10 +13,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import ayarlar as A
+from . import evren_yedek
 from .evren import evren_olustur
 from .konsey import Konsey
 from .rapor import panel_verisi
-from .veri import VeriYoneticisi, borsapy_var_mi, dakika, yerel
+from .veri import VeriYoneticisi, borsapy_var_mi, dakika, gun_no, yerel
 
 SURUM = "1.0"
 
@@ -44,6 +45,10 @@ class Robot:
                       "veri_kaynagi": None, "basarisiz": [], "borsapy": borsapy_var_mi()}
         self._yukle()
         self._zorla = threading.Event()
+        self.veri_kilit = threading.Lock()
+        self.takip = self._oku_json("takip.json") or []
+        self._fiyat_zaman = 0.0
+        self._evren_veri_zaman = 0.0
 
     # ------------------------------------------------------------ yardımcılar
     def log(self, mesaj):
@@ -146,8 +151,10 @@ class Robot:
     def _veri_al(self, tam=False, ilerleme=None):
         self.evren_guncelle()
         syms = self.semboller() + [self.ayar["endeks"]]
-        self.vy.birak(syms)
-        basarisiz = self.vy.guncelle(syms, tam=tam, ilerleme=ilerleme)
+        with self.veri_kilit:
+            self.vy.birak(syms + list(self.takip))
+            basarisiz = self.vy.guncelle(syms, tam=tam, ilerleme=ilerleme)
+        self._evren_veri_zaman = time.time()
         self.durum["basarisiz"] = basarisiz
         self.durum["veri_kaynagi"] = self.vy.son_kaynak
         simdi = time.time()
@@ -331,6 +338,100 @@ class Robot:
         self.onbellek[anahtar] = js
         return js
 
+    # ------------------------------------------------------------ fiyatlar ve takip listesi
+    # Takip listesi yalnız bilgi amaçlıdır: robotun portföyüne ve kararlarına hiç girmez.
+    def takip_degistir(self, ekle=None, cikar=None):
+        kod = (ekle or cikar or "").strip().upper().replace(".IS", "")
+        if not kod or not kod.replace("_", "").isalnum() or len(kod) > 12:
+            raise ValueError("Geçersiz hisse kodu")
+        with self.kilit:
+            if ekle and kod not in self.takip:
+                self.takip.append(kod)
+            if cikar and kod in self.takip:
+                self.takip.remove(kod)
+            self._yaz_json("takip.json", self.takip)
+        if ekle:
+            self._fiyat_zaman = 0.0
+            threading.Thread(target=self._fiyat_tazele, args=([kod],), daemon=True).start()
+        return self.takip
+
+    def _fiyat_tazele(self, kodlar):
+        if not kodlar or not self.veri_kilit.acquire(timeout=1):
+            return
+        try:
+            self.vy.guncelle(kodlar)
+        except Exception as e:
+            self.log("UYARI fiyat güncellemesi: %s" % e)
+        finally:
+            self.veri_kilit.release()
+
+    def fiyat_tazele_iste(self):
+        """Panel 'Fiyatlar' açıkken çağırır: takip listesi dakikada bir, diğer hisseler (canlı robot
+        çalışmıyorsa) 5 dakikada bir arka planda yenilenir."""
+        simdi = time.time()
+        kodlar = []
+        if simdi - self._fiyat_zaman >= 60:
+            kodlar += list(self.takip)
+            self._fiyat_zaman = simdi
+        if not (self.canli_aktif and self.canli is not None) and simdi - self._evren_veri_zaman >= 300 \
+                and self.durum.get("is") is None:
+            self._evren_veri_zaman = simdi
+            self.evren_guncelle()
+            kodlar += [k for k in self.semboller() if k not in kodlar]
+        if kodlar:
+            threading.Thread(target=self._fiyat_tazele, args=(kodlar,), daemon=True).start()
+
+    def _fiyat_satiri(self, kod):
+        d = self.vy.ham.get(kod)
+        r = {"kod": kod, "fiyat": None}
+        if not d:
+            return r
+        s = d["15m"] if len(d["15m"]) else d["1h"]
+        if not len(s):
+            return r
+        n = len(s)
+        son_gun = gun_no(s.ts[n - 1])
+        i = n - 1
+        while i >= 0 and gun_no(s.ts[i]) == son_gun:
+            i -= 1
+        bas = i + 1
+        onceki = s.c[i] if i >= 0 else None
+        fiyat = s.c[n - 1]
+        r.update({
+            "fiyat": round(fiyat, 4), "onceki": None if onceki is None else round(onceki, 4),
+            "degisim": None if not onceki else round((fiyat / onceki - 1) * 100, 2),
+            "dusuk": round(min(s.l[bas:n]), 4), "yuksek": round(max(s.h[bas:n]), 4),
+            "hacim_tl": round(sum(s.c[j] * s.v[j] for j in range(bas, n))),
+            "zaman": yerel(s.ts[n - 1] + (900 if s.aralik == "15m" else 3600)).strftime("%d.%m %H:%M"),
+        })
+        return r
+
+    def fiyatlar(self, tazele=False):
+        if tazele:
+            self.fiyat_tazele_iste()
+        k = self.canli or self.sim
+        p = self.canli.portfoyler["konsey"] if self.canli is not None else None
+        izlenen = self.semboller()
+        out_takip, out_hepsi = [], []
+        for kod in list(dict.fromkeys(list(self.takip) + izlenen)):
+            r = self._fiyat_satiri(kod)
+            r["takipte"] = kod in self.takip
+            r["robot_izliyor"] = kod in izlenen
+            r["robot_pozisyon"] = bool(p and kod in p.poz)
+            sk = (k.son_skorlar.get(kod) if k else None) or {}
+            r["skor"] = None if sk.get("konsey") is None else round(sk["konsey"], 3)
+            if r["takipte"]:
+                out_takip.append(r)
+            if r["robot_izliyor"]:
+                out_hepsi.append(r)
+        e = self.evren or {}
+        izinli = e.get("izinli") or list(evren_yedek.IZINLI)
+        yip = e.get("yip") or list(evren_yedek.YAKIN_IZLEME)
+        endeks = self._fiyat_satiri(self.ayar["endeks"])
+        return {"takip": out_takip, "hepsi": out_hepsi, "endeks": endeks,
+                "secenek": sorted(set(izinli) | set(yip) | set(izlenen)), "yip": sorted(yip),
+                "saat": yerel(time.time()).strftime("%H:%M:%S")}
+
     def _evren_ozet(self):
         if self.ayar.get("evren") == "tum" and self.evren:
             e = self.evren
@@ -390,6 +491,8 @@ def isleyici_olustur(robot, panel_yolu):
                     self._gonder(200, robot.panel("simulasyon" if mod == "simulasyon" else "canli"))
                 elif u.path == "/api/durum":
                     self._json(robot.genel_durum())
+                elif u.path == "/api/fiyatlar":
+                    self._json(robot.fiyatlar(tazele=(q.get("tazele") or ["0"])[0] == "1"))
                 elif u.path == "/api/ayarlar":
                     self._json({"ayar": robot.ayar, "varsayilan": A.VARSAYILAN, "bist30": A.BIST30})
                 else:
@@ -401,7 +504,9 @@ def isleyici_olustur(robot, panel_yolu):
             u = urlparse(self.path)
             b = self._govde()
             try:
-                if u.path == "/api/ayarlar":
+                if u.path == "/api/takip":
+                    self._json({"ok": True, "takip": robot.takip_degistir(b.get("ekle"), b.get("cikar"))})
+                elif u.path == "/api/ayarlar":
                     self._json({"ok": True, "ayar": robot.ayar_kaydet(b)})
                 elif u.path == "/api/canli/baslat":
                     if b.get("ayar"):
