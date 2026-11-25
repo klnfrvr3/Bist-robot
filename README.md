@@ -83,11 +83,26 @@ Yahoo'yu) doğrudan kullanır. Borsa MCP'yi ayrıca Claude'a bağlayıp hisseler
 | Supertrend (ATR 10×3) | Trend | Oynaklığa göre genişleyip daralan bir bantla yön belirler. |
 | Kırılım / Kaplumbağa (Donchian 20/10) | Trend | 20 barın zirvesini aşan hisseyi alır, 10 barın dibini kıranı satar (Turtle kuralları). |
 | Momentum (MACD + ROC) | Trend | Hızlanan harekete katılır, ivme bitince çıkar. |
-| Ortalamaya Dönüş (RSI-2 + Bollinger) | Dönüş | Yükseliş trendindeki hissenin panik düşüşlerini alır. İsabet yüksek, kazançlar küçük; trend motorlarının zarar ettiği yatay piyasada dengeler. |
+| Ortalamaya Dönüş (RSI-2 + Bollinger) | Dönüş | Yükseliş trendindeki hissenin panik düşüşlerini alır. İsabet yüksek, kazançlar küçük. **BIST testinde her yıl zarar ettiği için Konsey'de varsayılan olarak kapalı.** |
 
 Piyasa yapıcılık ve yüksek frekanslı işlem (HFT) gibi motorlar alış-satış makasından ve milisaniyelik
 fiyat farklarından kazanır; bunlar borsaya ortak yerleşim ve derinlik verisi gerektirir, 15 dakika
 gecikmeli veriyle yapılamaz. Bu yüzden robotta yer almazlar.
+
+### Gerçek veriyle test (Kasım 2026)
+
+2024 başından 25.11.2026'ya kadar, YİP dışındaki 582 hissenin gerçek verisiyle ve her gün **o günkü** en likit 120
+hisseyle (geleceği bilmeden) yapılan simülasyonda, 100.000 TL, binde 1,5 + BSMV komisyonla:
+
+| Ayar | Toplam | 2024 | 2025 | 2026 | Maks. düşüş |
+|---|---|---|---|---|---|
+| BIST100 al-tut | +%18,9 | +%10,1 | +%13,8 | −%5,9 | |
+| Eski varsayılan (5 motor) | +%34,7 | −%5,3 | +%60,8 | −%11,5 | −%29,4 |
+| **Yeni varsayılan** (Dönüş kapalı + göreli güç) | **+%72,0** | **+%6,1** | **+%35,2** | **+%20,0** | −%30,1 |
+
+Yeni varsayılan, denenen 8 ayardan en yüksek getiriyi vermedi; üç yılın üçünde de kârlı olduğu ve gerekçesi basit
+olduğu için seçildi (en yüksek sonucu veren ayarı seçmek geçmişe aşırı uyum riskidir). Geçmiş sonuç gelecek garantisi değildir;
+%30'luk düşüşler yaşanabilir. Getirileri TL mevduat faiziyle de karşılaştırın.
 
 ### Konsey
 
@@ -95,7 +110,8 @@ gecikmeli veriyle yapılamaz. Bu yüzden robotta yer almazlar.
 * Zaman dilimi ağırlıkları: 4s %35 · 2s %25 · 1s %25 · 15dk %15 (büyük resim yönü, küçük resim zamanlamayı belirler).
 * **Adaptif ağırlık:** her motor aynı sermayeyle kendi “gölge portföyünde” de işlem yapar. Son 20 işlem
   gününde iyi giden motorun Konsey'deki oyu artar (yarısı her zaman eşit dağıtılır, aşırı uyum olmasın diye).
-* **Al:** Konsey skoru ≥ +0,30 **ve** hissenin 4 saatlik fiyatı EMA50 üstünde **ve** BIST100 düşüş trendinde değilse.
+* **Al:** Konsey skoru ≥ +0,30 **ve** hissenin 4 saatlik fiyatı EMA50 üstünde **ve** BIST100 düşüş trendinde değilse **ve** hisse son 20 adet 4 saatlik barda BIST100'den daha çok yükselmişse (göreli güç).
+* Sığ hisselerde alış-satış fiyatına likiditeye göre ek kayma eklenir (günlük 50 milyon TL hacimde +%0,10, 10 milyonda ~+%0,22).
 * **Sat:** skor ≤ −0,10 ya da stop.
 * Yalnız alım yönlü işlem yapar (açığa satış yok).
 

@@ -207,13 +207,16 @@ def panel_verisi(k, ayar, mod, durum=None):
         })
     sinyaller.sort(key=lambda r: -(r["konsey"] if r["konsey"] is not None else -9))
 
+    aktif = set(ayar.get("aktif_motorlar") or MOTORLAR)
+    top = sum(w for m, w in k.agirlik.items() if m in aktif) or 1.0
+    agirlik_n = {m: (w / top if m in aktif else 0.0) for m, w in k.agirlik.items()}
     motorlar = []
     for ad in ["konsey"] + MOTORLAR:
         pp = k.portfoyler[ad]
-        bilgi = MOTOR_BILGI.get(ad, {"ad": "Konsey (5 motor x 4 zaman dilimi)", "aile": "Birleşik",
+        bilgi = MOTOR_BILGI.get(ad, {"ad": "Konsey (motor oyları x 4 zaman dilimi)", "aile": "Birleşik",
                                      "nasil": "", "kar": ""})
         motorlar.append({"kod": ad, "bilgi": bilgi, "ist": istatistik(pp),
-                         "agirlik": None if ad == "konsey" else _r(k.agirlik.get(ad, 0) * 100, 1)})
+                         "agirlik": None if ad == "konsey" else _r(agirlik_n.get(ad, 0) * 100, 1)})
 
     egri = {ad: _seyrek(pp.noktalar) for ad, pp in k.portfoyler.items()}
     egri["endeks"] = _seyrek(k.endeks_noktalar)
@@ -225,5 +228,5 @@ def panel_verisi(k, ayar, mod, durum=None):
     return {"mod": mod, "ozet": ozet, "gunler": gunler, "haftalar": t["haftalar"], "aylar": t["aylar"],
             "yillar": t["yillar"], "pozisyonlar": p.pozisyon_listesi(), "bekleyen": bekleyen,
             "islemler": islemler, "sinyaller": sinyaller, "motorlar": motorlar, "egri": egri,
-            "agirlik": {m: _r(w * 100, 1) for m, w in k.agirlik.items()},
+            "agirlik": {m: _r(w * 100, 1) for m, w in agirlik_n.items()},
             "durum": durum or {}}

@@ -24,7 +24,9 @@ VARSAYILAN = {
     "endeks": "XU100",
     "veri_kaynagi": "otomatik",        # otomatik | yahoo | borsapy
     "zaman_dilimleri": {"15m": 0.15, "1h": 0.25, "2h": 0.25, "4h": 0.35},
-    "aktif_motorlar": ["trend", "supertrend", "kirilim", "momentum", "donus"],
+    # Gerçek veriyle 2024-2026 testinde Ortalamaya Dönüş motoru üç yılın üçünde zarar etti: Konsey'de oy kullanmaz,
+    # gölge portföyde izlenmeye devam eder.
+    "aktif_motorlar": ["trend", "supertrend", "kirilim", "momentum"],
     "adaptif_agirlik": True,
     "adaptif_pencere_gun": 20,
     "giris_esigi": 0.30,
