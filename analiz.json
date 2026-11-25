@@ -1,0 +1,596 @@
+{
+ "tarih": "2026-11-25 16:55",
+ "hisse": 582,
+ "gun": 1000,
+ "dinamik_evren": 120,
+ "evren": {
+  "izinli_sayi": 588,
+  "yip_sayi": 24,
+  "uygun_sayi": 582,
+  "kaynak": "KAP + TradingView hacim"
+ },
+ "basarisiz": [],
+ "sonuclar": [
+  {
+   "ad": "varsayilan",
+   "fark": {},
+   "sure": 92,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 34.71,
+     "yillik_getiri": 15.57,
+     "max_dusus": -29.4,
+     "sharpe": 0.72,
+     "isabet": 44.5,
+     "kar_faktoru": 1.14,
+     "islem": 732,
+     "komisyon": 25448.71,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": -5.29,
+      "mdd": -10.06,
+      "islem": 57,
+      "komisyon": 1573
+     },
+     "2025": {
+      "getiri": 60.78,
+      "mdd": -14.72,
+      "islem": 332,
+      "komisyon": 10329
+     },
+     "2026": {
+      "getiri": -11.54,
+      "mdd": -29.4,
+      "islem": 343,
+      "komisyon": 13547
+     }
+    }
+   },
+   "trend": {
+    "ist": {
+     "toplam_yuzde": 26.49,
+     "yillik_getiri": 12.09,
+     "max_dusus": -22.55,
+     "sharpe": 0.59,
+     "isabet": 48.2,
+     "kar_faktoru": 1.13,
+     "islem": 726,
+     "komisyon": 19651.09,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": -1.99,
+      "mdd": -8.83,
+      "islem": 73,
+      "komisyon": 2037
+     },
+     "2025": {
+      "getiri": 10.25,
+      "mdd": -21.56,
+      "islem": 346,
+      "komisyon": 8659
+     },
+     "2026": {
+      "getiri": 17.06,
+      "mdd": -22.31,
+      "islem": 307,
+      "komisyon": 8956
+     }
+    }
+   },
+   "supertrend": {
+    "ist": {
+     "toplam_yuzde": 4.6,
+     "yillik_getiri": 2.21,
+     "max_dusus": -27.6,
+     "sharpe": 0.21,
+     "isabet": 45.2,
+     "kar_faktoru": 1.03,
+     "islem": 730,
+     "komisyon": 19518.86,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": -3.78,
+      "mdd": -10.78,
+      "islem": 67,
+      "komisyon": 1958
+     },
+     "2025": {
+      "getiri": -4.15,
+      "mdd": -17.87,
+      "islem": 352,
+      "komisyon": 8643
+     },
+     "2026": {
+      "getiri": 13.4,
+      "mdd": -27.6,
+      "islem": 311,
+      "komisyon": 8918
+     }
+    }
+   },
+   "kirilim": {
+    "ist": {
+     "toplam_yuzde": 37.01,
+     "yillik_getiri": 16.52,
+     "max_dusus": -23.75,
+     "sharpe": 0.76,
+     "isabet": 44.5,
+     "kar_faktoru": 1.17,
+     "islem": 930,
+     "komisyon": 28448.82,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 0.62,
+      "mdd": -11.09,
+      "islem": 79,
+      "komisyon": 2363
+     },
+     "2025": {
+      "getiri": 7.12,
+      "mdd": -18.09,
+      "islem": 470,
+      "komisyon": 13543
+     },
+     "2026": {
+      "getiri": 27.12,
+      "mdd": -23.75,
+      "islem": 381,
+      "komisyon": 12543
+     }
+    }
+   },
+   "momentum": {
+    "ist": {
+     "toplam_yuzde": 53.44,
+     "yillik_getiri": 23.11,
+     "max_dusus": -23.32,
+     "sharpe": 0.98,
+     "isabet": 39.7,
+     "kar_faktoru": 1.16,
+     "islem": 1686,
+     "komisyon": 57689.09,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": -6.2,
+      "mdd": -17.32,
+      "islem": 151,
+      "komisyon": 4403
+     },
+     "2025": {
+      "getiri": 37.2,
+      "mdd": -11.87,
+      "islem": 777,
+      "komisyon": 23909
+     },
+     "2026": {
+      "getiri": 19.23,
+      "mdd": -23.32,
+      "islem": 758,
+      "komisyon": 29377
+     }
+    }
+   },
+   "donus": {
+    "ist": {
+     "toplam_yuzde": -53.94,
+     "yillik_getiri": -31.37,
+     "max_dusus": -57.09,
+     "sharpe": -2.2,
+     "isabet": 54.2,
+     "kar_faktoru": 0.78,
+     "islem": 2532,
+     "komisyon": 45658.42,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": -1.83,
+      "mdd": -8.47,
+      "islem": 225,
+      "komisyon": 6434
+     },
+     "2025": {
+      "getiri": -27.47,
+      "mdd": -29.32,
+      "islem": 1234,
+      "komisyon": 24616
+     },
+     "2026": {
+      "getiri": -35.31,
+      "mdd": -37.75,
+      "islem": 1073,
+      "komisyon": 14608
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ]
+   },
+   "sure": 88,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 47.25,
+     "yillik_getiri": 20.67,
+     "max_dusus": -33.96,
+     "sharpe": 0.85,
+     "isabet": 48.2,
+     "kar_faktoru": 1.16,
+     "islem": 838,
+     "komisyon": 31870.74,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 5.11,
+      "mdd": -10.75,
+      "islem": 57,
+      "komisyon": 1615
+     },
+     "2025": {
+      "getiri": 49.25,
+      "mdd": -17.44,
+      "islem": 382,
+      "komisyon": 12939
+     },
+     "2026": {
+      "getiri": -6.14,
+      "mdd": -33.96,
+      "islem": 399,
+      "komisyon": 17316
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true
+   },
+   "sure": 94,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 72.01,
+     "yillik_getiri": 30.13,
+     "max_dusus": -30.08,
+     "sharpe": 1.13,
+     "isabet": 48.6,
+     "kar_faktoru": 1.24,
+     "islem": 840,
+     "komisyon": 32118.07,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 6.05,
+      "mdd": -10.11,
+      "islem": 57,
+      "komisyon": 1584
+     },
+     "2025": {
+      "getiri": 35.2,
+      "mdd": -18.29,
+      "islem": 402,
+      "komisyon": 12611
+     },
+     "2026": {
+      "getiri": 19.97,
+      "mdd": -30.08,
+      "islem": 381,
+      "komisyon": 17923
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg_genis",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true,
+    "stop_atr_kat": 2.5,
+    "iz_suren_atr_kat": 3.5
+   },
+   "sure": 96,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 40.34,
+     "yillik_getiri": 17.89,
+     "max_dusus": -28.69,
+     "sharpe": 0.85,
+     "isabet": 49.3,
+     "kar_faktoru": 1.19,
+     "islem": 746,
+     "komisyon": 21761.33,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 4.91,
+      "mdd": -10.46,
+      "islem": 49,
+      "komisyon": 1149
+     },
+     "2025": {
+      "getiri": 21.12,
+      "mdd": -20.35,
+      "islem": 354,
+      "komisyon": 9836
+     },
+     "2026": {
+      "getiri": 10.45,
+      "mdd": -28.69,
+      "islem": 343,
+      "komisyon": 10777
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg_g040",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true,
+    "giris_esigi": 0.4
+   },
+   "sure": 91,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 61.54,
+     "yillik_getiri": 26.22,
+     "max_dusus": -29.01,
+     "sharpe": 1.01,
+     "isabet": 47.2,
+     "kar_faktoru": 1.21,
+     "islem": 822,
+     "komisyon": 30112.79,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 6.05,
+      "mdd": -10.11,
+      "islem": 57,
+      "komisyon": 1584
+     },
+     "2025": {
+      "getiri": 35.25,
+      "mdd": -18.26,
+      "islem": 402,
+      "komisyon": 12612
+     },
+     "2026": {
+      "getiri": 12.62,
+      "mdd": -29.01,
+      "islem": 363,
+      "komisyon": 15916
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg_atr2s",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true,
+    "atr_zaman_dilimi": "2h"
+   },
+   "sure": 91,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 192.54,
+     "yillik_getiri": 68.41,
+     "max_dusus": -30.63,
+     "sharpe": 1.99,
+     "isabet": 49.4,
+     "kar_faktoru": 1.33,
+     "islem": 1146,
+     "komisyon": 74415.16,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 3.59,
+      "mdd": -9.33,
+      "islem": 73,
+      "komisyon": 2333
+     },
+     "2025": {
+      "getiri": 114.76,
+      "mdd": -13.16,
+      "islem": 540,
+      "komisyon": 25923
+     },
+     "2026": {
+      "getiri": 31.49,
+      "mdd": -30.63,
+      "islem": 533,
+      "komisyon": 46159
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg_genis_g040",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true,
+    "stop_atr_kat": 2.5,
+    "iz_suren_atr_kat": 3.5,
+    "giris_esigi": 0.4
+   },
+   "sure": 92,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 41.81,
+     "yillik_getiri": 18.49,
+     "max_dusus": -27.05,
+     "sharpe": 0.87,
+     "isabet": 49.1,
+     "kar_faktoru": 1.2,
+     "islem": 738,
+     "komisyon": 21419.57,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 4.91,
+      "mdd": -10.46,
+      "islem": 49,
+      "komisyon": 1149
+     },
+     "2025": {
+      "getiri": 19.43,
+      "mdd": -23.34,
+      "islem": 354,
+      "komisyon": 9930
+     },
+     "2026": {
+      "getiri": 13.19,
+      "mdd": -27.05,
+      "islem": 335,
+      "komisyon": 10341
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  },
+  {
+   "ad": "donussuz_gg_8poz",
+   "fark": {
+    "aktif_motorlar": [
+     "trend",
+     "supertrend",
+     "kirilim",
+     "momentum"
+    ],
+    "goreli_guc_filtresi": true,
+    "max_acik_pozisyon": 8,
+    "max_pozisyon_yuzde": 12.5
+   },
+   "sure": 92,
+   "konsey": {
+    "ist": {
+     "toplam_yuzde": 74.63,
+     "yillik_getiri": 31.09,
+     "max_dusus": -33.84,
+     "sharpe": 1.18,
+     "isabet": 47.9,
+     "kar_faktoru": 1.2,
+     "islem": 1256,
+     "komisyon": 36543.06,
+     "gun_sayisi": 519
+    },
+    "yillik": {
+     "2024": {
+      "getiri": 0.45,
+      "mdd": -13.39,
+      "islem": 96,
+      "komisyon": 1895
+     },
+     "2025": {
+      "getiri": 57.77,
+      "mdd": -14.12,
+      "islem": 588,
+      "komisyon": 14038
+     },
+     "2026": {
+      "getiri": 10.2,
+      "mdd": -33.84,
+      "islem": 572,
+      "komisyon": 20610
+     }
+    }
+   },
+   "endeks": {
+    "2024": 10.13,
+    "2025": 13.81,
+    "2026": -5.91
+   },
+   "endeks_toplam": 18.87
+  }
+ ]
+}
