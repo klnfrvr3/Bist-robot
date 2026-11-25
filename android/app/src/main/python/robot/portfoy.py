@@ -110,7 +110,8 @@ class Portfoy:
         kullanilabilir = self.nakit - self.rezerv()
         a3 = math.floor(kullanilabilir / (fiyat * (1 + self.kom_orani() + 2 * self.kayma(sym))))
         adet = max(0, min(a1, a2, a3))
-        if adet * fiyat < float(a.get("min_islem_tl", 1000)):
+        # asgari işlem tutarı küçük sermayede alımı tamamen engellemesin: en fazla özkaynağın %5'i
+        if adet * fiyat < min(float(a.get("min_islem_tl", 1000)), ozk * 0.05):
             return 0
         return adet
 
