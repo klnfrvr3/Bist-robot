@@ -23,6 +23,7 @@ from robot.veri import VeriYoneticisi  # noqa: E402
 CIKTI = os.path.join(KOK, "analiz_sonuc")
 GUN = int(os.environ.get("ANALIZ_GUN", "1000"))
 N = int(os.environ.get("ANALIZ_HISSE", "120"))
+TUM = os.environ.get("ANALIZ_EVREN", "tum") == "tum"   # tüm YİP dışı hisseler + o günkü likiditeye göre seçim
 
 SETLER = {
     "varsayilan": {},
@@ -70,7 +71,7 @@ def _endeks_yillik(k):
 
 
 def calistir(ad):
-    ayar = A.dogrula(dict(SETLER[ad], evren="liste"))
+    ayar = A.dogrula(dict(SETLER[ad], evren="liste", dinamik_evren=N if TUM else 0))
     t0 = time.time()
     k = Konsey(ayar)
     k.hazirla(SERILER, ENDEKS, bas_T=BAS)
@@ -95,8 +96,8 @@ def main():
     os.makedirs(CIKTI, exist_ok=True)
     klasor = "/tmp/analiz_veri"
     os.makedirs(klasor, exist_ok=True)
-    ev = evren_olustur(klasor, N, 10e6, log=print)
-    syms = ev["hisseler"]
+    ev = evren_olustur(klasor, N if not TUM else 2000, 10e6 if not TUM else 0, log=print)
+    syms = ev["hisseler"]  # TUM: hacmi olan tüm YİP dışı hisseler; seçim her gün geçmiş hacme göre yapılır
     vy = VeriYoneticisi(os.path.join(klasor, "onbellek"), "yahoo", log=print)
     t0 = time.time()
     bas = vy.guncelle(syms + ["XU100"], tam=True)
@@ -105,16 +106,17 @@ def main():
     SERILER = {s: vy.seriler(s, simdi) for s in syms if s in vy.ham}
     ENDEKS = vy.seriler("XU100", simdi)
     BAS = simdi - GUN * 86400
-    with ProcessPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
+    with ProcessPoolExecutor(max_workers=int(os.environ.get("ANALIZ_ISCI", "2"))) as ex:
         sonuclar = list(ex.map(calistir, list(SETLER)))
-    rapor = {"tarih": time.strftime("%Y-%m-%d %H:%M"), "hisse": len(SERILER), "gun": GUN,
+    rapor = {"tarih": time.strftime("%Y-%m-%d %H:%M"), "hisse": len(SERILER), "gun": GUN, "dinamik_evren": N if TUM else 0,
              "evren": {k: ev.get(k) for k in ("izinli_sayi", "yip_sayi", "uygun_sayi", "kaynak")},
              "basarisiz": bas, "sonuclar": sonuclar}
     with open(os.path.join(CIKTI, "analiz.json"), "w", encoding="utf-8") as f:
         json.dump(rapor, f, ensure_ascii=False, indent=1)
     # okunur özet
     sat = ["# Gerçek veriyle karşılaştırmalı simülasyon", "",
-           "%s · %d hisse · %d gün" % (rapor["tarih"], rapor["hisse"], GUN), ""]
+           "%s · %d hisse · %d gün · %s" % (rapor["tarih"], rapor["hisse"], GUN,
+           "her gün o günkü en likit %d hisse (geleceği bilmeden)" % N if TUM else "bugünkü en likit liste (seçim yanlılığı var)"), ""]
     yillar = sorted({y for r in sonuclar for y in r["konsey"]["yillik"]})
     sat.append("| Ayar | Toplam % | " + " | ".join(yillar) + " | MaksDüş % | Sharpe | İşlem | Komisyon |")
     sat.append("|---|---|" + "---|" * len(yillar) + "---|---|---|---|")

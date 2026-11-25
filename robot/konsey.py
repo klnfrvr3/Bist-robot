@@ -290,6 +290,17 @@ class Konsey:
             if not hasattr(p, "likidite"):
                 p.likidite = {}
             p.likidite.update(lik)
+        # dinamik evren: o gün itibarıyla (geçmiş 20 gün hacmine göre) en likit N hisse
+        dn = int(self.ayar.get("dinamik_evren", 0) or 0)
+        if dn > 0 and getattr(self, "_evren_gun", None) != g0:
+            self._evren_gun = g0
+            sira = []
+            for sym2, gl in getattr(self, "lik_gun", {}).items():
+                k = bisect_right(gl[0], g0) - 1
+                if k >= 0 and gl[1][k] >= float(self.ayar.get("min_gunluk_hacim_tl", 0)):
+                    sira.append((gl[1][k], sym2))
+            sira.sort(reverse=True)
+            self._evren_set = {x for _, x in sira[:dn]}
 
         # 1) yeni barlar: emirler açılışta gerçekleşir, stoplar kontrol edilir
         skorlar = {}
@@ -322,6 +333,8 @@ class Konsey:
                 if s is None or s < giris or not sk["rejim"] or not sk["atr"]:
                     continue
                 if sym in p.poz or sym in p.bekleyen or p.bekleme.get(sym) == d:
+                    continue
+                if int(a.get("dinamik_evren", 0) or 0) > 0 and sym not in getattr(self, "_evren_set", ()):
                     continue
                 adaylar.append((s, sym))
             adaylar.sort(reverse=True)
