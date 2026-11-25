@@ -1,0 +1,8 @@
+panel_hazir=1 (bekleme ~9 sn)
+sim_var=True | mesaj=Simülasyon tamamlandı. | kaynak=yahoo | basarisiz=[]
+evren={'mod': 'tum', 'sayi': 40, 'uygun': 456, 'izinli': 588, 'yip': 24, 'tarih': '2026-11-26', 'kaynak': 'KAP + TradingView hacim', 'min_hacim': 10000000.0}
+26.11 00:36:39  BIST Konsey Robotu Android'de çalışıyor (port 8765).
+26.11 00:36:42  Ayarlar kaydedildi: sermaye 100000 TL, komisyon binde 1.50 + BSMV, kayma %0.05, 30 hisse.
+26.11 00:36:47  Hisse evreni: 612 pazarda 588 pay (YİP'teki 24 pay hariç); günlük hacmi 10 milyon TL üstünde 456 pay; en likit 40 tanesi seçildi (KAP + TradingView hacim).
+26.11 00:37:08  SİMÜLASYON bitti (45 gün, 40 hisse, 26 sn): özkaynak 96229.59 TL (-3.77%), 44 işlem.
+ozet: {'ozkaynak': 96229.59, 'toplam_yuzde': -3.77, 'islem': 44, 'gun_sayisi': 32}
