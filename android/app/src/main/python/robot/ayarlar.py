@@ -24,6 +24,7 @@ VARSAYILAN = {
     "endeks": "XU100",
     "veri_kaynagi": "otomatik",        # otomatik | yahoo | borsapy
     "zaman_dilimleri": {"15m": 0.15, "1h": 0.25, "2h": 0.25, "4h": 0.35},
+    "aktif_motorlar": ["trend", "supertrend", "kirilim", "momentum", "donus"],
     "adaptif_agirlik": True,
     "adaptif_pencere_gun": 20,
     "giris_esigi": 0.30,
@@ -103,6 +104,9 @@ def dogrula(a):
                 continue
             if sum(v.values()) <= 0:
                 continue
+        elif k == "aktif_motorlar":
+            from .motorlar import MOTORLAR as _M
+            v = [m for m in (v or []) if m in _M] or list(_M)
         elif k == "atr_zaman_dilimi":
             v = v if v in ("15m", "1h", "2h", "4h") else "4h"
         elif k == "evren":

@@ -25,17 +25,16 @@ GUN = int(os.environ.get("ANALIZ_GUN", "1000"))
 N = int(os.environ.get("ANALIZ_HISSE", "120"))
 TUM = os.environ.get("ANALIZ_EVREN", "tum") == "tum"   # tüm YİP dışı hisseler + o günkü likiditeye göre seçim
 
+V2 = {"aktif_motorlar": ["trend", "supertrend", "kirilim", "momentum"]}
 SETLER = {
     "varsayilan": {},
-    "goreli_guc": {"goreli_guc_filtresi": True},
-    "endeks_filtresiz": {"endeks_filtresi": False},
-    "giris_040": {"giris_esigi": 0.40},
-    "giris_020": {"giris_esigi": 0.20},
-    "atr_2s": {"atr_zaman_dilimi": "2h"},
-    "genis_stop": {"stop_atr_kat": 2.5, "iz_suren_atr_kat": 3.5},
-    "8_pozisyon": {"max_acik_pozisyon": 8, "max_pozisyon_yuzde": 12.5},
-    "adaptifsiz": {"adaptif_agirlik": False},
-    "kaymasiz": {"likidite_kaymasi": False},
+    "donussuz": dict(V2),
+    "donussuz_gg": dict(V2, goreli_guc_filtresi=True),
+    "donussuz_gg_genis": dict(V2, goreli_guc_filtresi=True, stop_atr_kat=2.5, iz_suren_atr_kat=3.5),
+    "donussuz_gg_g040": dict(V2, goreli_guc_filtresi=True, giris_esigi=0.40),
+    "donussuz_gg_atr2s": dict(V2, goreli_guc_filtresi=True, atr_zaman_dilimi="2h"),
+    "donussuz_gg_genis_g040": dict(V2, goreli_guc_filtresi=True, stop_atr_kat=2.5, iz_suren_atr_kat=3.5, giris_esigi=0.40),
+    "donussuz_gg_8poz": dict(V2, goreli_guc_filtresi=True, max_acik_pozisyon=8, max_pozisyon_yuzde=12.5),
 }
 
 SERILER = None

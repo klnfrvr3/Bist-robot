@@ -158,12 +158,14 @@ class Konsey:
                 ham[tf][m] = v
                 motor_top[m] += w * v
                 motor_w[m] += w
-                ust += self.agirlik[m] * v
-                alt += self.agirlik[m]
+                if m in self._aktif():
+                    ust += self.agirlik[m] * v
+                    alt += self.agirlik[m]
             tf_skor[tf] = (ust / alt) if alt > 0 else None
         motor_skor = {m: (motor_top[m] / motor_w[m] if motor_w[m] > 0 else None) for m in MOTORLAR}
-        ust = sum(self.agirlik[m] * s for m, s in motor_skor.items() if s is not None)
-        alt = sum(self.agirlik[m] for m, s in motor_skor.items() if s is not None)
+        aktif = self._aktif()
+        ust = sum(self.agirlik[m] * s for m, s in motor_skor.items() if s is not None and m in aktif)
+        alt = sum(self.agirlik[m] for m, s in motor_skor.items() if s is not None and m in aktif)
         konsey = ust / alt if alt > 0 else None
 
         rejim = True
@@ -178,6 +180,11 @@ class Konsey:
             rejim = self._goreli_guc(sym, T) is not False
         return {"konsey": konsey, "motor": motor_skor, "tf": tf_skor, "rejim": rejim,
                 "atr": atr, "fiyat": fiyat, "T": T}
+
+    def _aktif(self):
+        """Konsey'de oy kullanan motorlar (kapalı motorlar gölge portföyde çalışmaya devam eder)."""
+        a = self.ayar.get("aktif_motorlar") or MOTORLAR
+        return set(a)
 
     def _goreli_guc(self, sym, T, n=20):
         """Hisse son n adet 4 saatlik barda BIST100'den iyi mi? Veri yoksa None."""
